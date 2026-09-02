@@ -6,6 +6,8 @@ import {
     ScrollView,
     StyleSheet,
     Alert,
+    Linking,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -113,9 +115,9 @@ function PaymentRow({ item }) {
     );
 }
 
-function SectionItem({ item }) {
+function SectionItem({ item, onPress }) {
     return (
-        <TouchableOpacity style={styles.sectionItem} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.sectionItem} activeOpacity={0.7} onPress={onPress}>
             <View style={styles.sectionIconCircle}>
                 <Ionicons name={item.icon} size={20} color={COLORS.primary} />
             </View>
@@ -147,17 +149,47 @@ export default function Profile({ navigation }) {
     };
 
     const handleLogout = () => {
-        Alert.alert('Log out', 'Are you sure you want to log out?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Logout',
-                style: 'destructive',
-                onPress: async () => {
-                    await clearLoggedIn();
-                    navigation.replace('Splash');
-                },
-            },
-        ]);
+        const doLogout = async () => {
+            await clearLoggedIn();
+            navigation.replace('Splash');
+        };
+
+        // Alert.alert's button callbacks don't fire reliably on web builds
+        // (react-native-web has no native Alert UI), so branch on platform.
+        if (Platform.OS === 'web') {
+            if (window.confirm('Are you sure you want to log out?')) {
+                doLogout();
+            }
+        } else {
+            Alert.alert('Log out', 'Are you sure you want to log out?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Logout', style: 'destructive', onPress: doLogout },
+            ]);
+        }
+    };
+
+    const handleAccountPress = (id) => {
+        if (id === 'personal') {
+            // navigation.navigate('PersonalInfo') once that screen exists
+            Alert.alert('Personal info', 'Coming soon.');
+        }
+        if (id === 'notifications') {
+            // navigation.navigate('Notifications') once that screen exists
+            Alert.alert('Notifications', 'Coming soon.');
+        }
+        if (id === 'favorites') {
+            navigation.navigate('Favorites');
+        }
+    };
+
+    const handleSupportPress = (id) => {
+        if (id === 'help') {
+            Linking.openURL('mailto:support@foodflow.app?subject=Help%20Request');
+        }
+        if (id === 'settings') {
+            // navigation.navigate('Settings') once that screen exists
+            Alert.alert('Settings', 'Coming soon.');
+        }
     };
 
     return (
@@ -245,13 +277,13 @@ export default function Profile({ navigation }) {
                     {/* ACCOUNT section */}
                     <Text style={styles.sectionHeading}>ACCOUNT</Text>
                     {ACCOUNT_ITEMS.map((item) => (
-                        <SectionItem key={item.id} item={item} />
+                        <SectionItem key={item.id} item={item} onPress={() => handleAccountPress(item.id)} />
                     ))}
 
                     {/* SUPPORT section */}
                     <Text style={styles.sectionHeading}>SUPPORT</Text>
                     {SUPPORT_ITEMS.map((item) => (
-                        <SectionItem key={item.id} item={item} />
+                        <SectionItem key={item.id} item={item} onPress={() => handleSupportPress(item.id)} />
                     ))}
 
                     {/* Logout */}
@@ -477,13 +509,13 @@ const styles = StyleSheet.create({
     logoutRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',   // ← add this line
+        justifyContent: 'center',
         marginTop: SIZES.spacing.md,
         marginBottom: SIZES.spacing.lg,
     },
     logoutText: {
         fontFamily: FONT.semiBold,
-        fontSize: SIZES.body,        // ← was SIZES.bodySmall
+        fontSize: SIZES.body,
         color: '#E53935',
         marginLeft: SIZES.spacing.sm,
     },
